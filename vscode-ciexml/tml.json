@@ -1,0 +1,42 @@
+{
+    "scopeName": "source.ciexml",
+    "patterns": [
+        { "match": "^\\s*note.*$", "name": "comment.line.note.ciexml" },
+        {
+            "begin": "^\\s*([A-Za-z_][A-Za-z0-9_]*)",
+            "end": "(?=\\s+\\b(?:in|with)\\b)|$",
+            "beginCaptures": { "1": { "name": "entity.name.function.ciexml" } },
+            "contentName": "entity.name.function.ciexml",
+            "patterns": [
+                { "match": "\\b(?:register|unsigned|byte|short|number)(?![A-Za-z_])", "name": "storage.type.ciexml" },
+                { "match": "\\d+\\b", "name": "constant.numeric.ciexml" }
+            ]
+        },
+        {
+            "begin": "(\\bin\\b)\\s+",
+            "end": "(?=\\s+\\b(?:in|with)\\b)|$",
+            "beginCaptures": { "1": { "name": "keyword.control.ciexml" } },
+            "contentName": "entity.name.class.ciexml",
+            "patterns": [
+                { "match": "\\b(?:register|unsigned|byte|short|number)(?![A-Za-z_])", "name": "storage.type.ciexml" },
+                { "match": "\\d+\\b", "name": "constant.numeric.ciexml" }
+            ]
+        },
+        {
+            "begin": "(\\bwith\\b)\\s+",
+            "end": "(?=\\s+\\bwith\\b)|$",
+            "beginCaptures": { "1": { "name": "keyword.control.ciexml" } },
+            "contentName": "entity.name.function.ciexml",
+            "patterns": [
+                { "match": "'[^']*'", "name": "string.quoted.single.ciexml" },
+                { "match": "\"[^\"]*\"", "name": "string.quoted.double.ciexml" },
+                { "match": "\\b(?:register|unsigned|byte|short|number)(?![A-Za-z_])", "name": "storage.type.ciexml" },
+                { "match": "\\d+\\b", "name": "constant.numeric.ciexml" }
+            ]
+        },
+        { "match": "\\b(?:in|with)\\b", "name": "keyword.control.ciexml" },
+        { "match": "\\b(?:register|unsigned|byte|short|number)(?![A-Za-z_])", "name": "storage.type.ciexml" },
+        { "match": "\\d+\\b", "name": "constant.numeric.ciexml" },
+        { "match": "[A-Za-z_][A-Za-z0-9_]*", "name": "entity.name.class.ciexml" }
+    ]
+}
