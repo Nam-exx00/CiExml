@@ -1,0 +1,9 @@
+# Build artifacts
+*.exe
+*.pdb
+*.lib
+*.obj
+*.crp
+*.log
+.dub/
+dub.selections.json
