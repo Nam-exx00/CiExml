@@ -1,38 +1,40 @@
 /*
-    RECAY OPEN SOURCE PROJECT LICENSE
+    Copyright 2026 Nam-exx00
 
-    Copyright 2026 Nam_exx00
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-    THE PROJECT IS OPEN SOURCE. SUBJECT TO THIS LICENSE, YOU MAY USE, COPY, MODIFY, UPDATE, AND REDISTRIBUTE THE PROJECT. YOU MUST RETAIN THIS LICENSE AND ALL COPYRIGHT NOTICES, AUTHOR ATTRIBUTIONS, AND ATTRIBUTION NOTICES.
+        http://www.apache.org/licenses/LICENSE-2.0
 
-    THIS LICENSE CONTAINS A LIMITED COPYLEFT REQUIREMENT. THE OBLIGATION TO PROVIDE SOURCE CODE AND TO LICENSE A MODIFIED VERSION UNDER THIS SAME LICENSE IS TRIGGERED ONLY WHEN YOU DISTRIBUTE A MODIFIED VERSION. DISTRIBUTING AN UNMODIFIED COPY DOES NOT TRIGGER THAT SOURCE CODE OBLIGATION. PRIVATE MODIFICATION WITHOUT DISTRIBUTION ALSO DOES NOT TRIGGER THAT OBLIGATION.
-
-    YOU MAY DISTRIBUTE AN UNMODIFIED COPY IN CLOSED-SOURCE FORM. AN UNMODIFIED COPY DOES NOT HAVE TO BE LICENSED UNDER THIS LICENSE, AND YOU DO NOT HAVE TO PROVIDE ITS SOURCE CODE. HOWEVER, YOU MUST STILL RETAIN THE ORIGINAL COPYRIGHT NOTICES, AUTHOR ATTRIBUTIONS, AND ATTRIBUTION NOTICES, AND YOU MUST NOT FALSELY CLAIM THAT YOU ARE THE AUTHOR, COPYRIGHT OWNER, OR PROJECT OWNER OF THE ORIGINAL PARTS.
-
-    IF YOU DISTRIBUTE A MODIFIED VERSION, YOU MUST LICENSE IT UNDER THIS SAME LICENSE AND YOU MAY NOT RELICENSE IT OR MAKE IT CLOSED SOURCE. YOU MUST PROVIDE THE COMPLETE SOURCE CODE OF THE MODIFIED VERSION TO THE RECIPIENT IN A MANNER THAT ALLOWS THE RECIPIENT TO OBTAIN, RUN, MODIFY, AND REDISTRIBUTE IT. YOU MUST RETAIN THIS LICENSE TEXT, ALL COPYRIGHT NOTICES, AUTHOR ATTRIBUTIONS, AND ATTRIBUTION NOTICES. YOU MUST PROMINENTLY STATE THAT THE VERSION HAS BEEN MODIFIED AND REASONABLY IDENTIFY THE MODIFICATIONS OR THE DATE OF MODIFICATION. YOU MUST NOT IMPOSE ADDITIONAL RESTRICTIONS ON THE RECIPIENT'S RIGHTS UNDER THIS LICENSE. IF THE MODIFIED VERSION INCLUDES THIRD-PARTY CODE OR MATERIALS, YOU MUST ALSO COMPLY WITH THE LICENSES APPLICABLE TO THAT THIRD-PARTY CODE OR MATERIALS.
-
-    WITH RESPECT TO THE ORIGINAL PARTS, YOU COVENANT NOT TO BRING A COPYRIGHT INFRINGEMENT ACTION AGAINST, OR ASSERT COPYRIGHT INFRINGEMENT LIABILITY AGAINST, THE COPYRIGHT HOLDER OR ANY CONTRIBUTOR. THIS COVENANT DOES NOT APPLY TO PORTIONS OF A MODIFIED VERSION ADDED OR MODIFIED BY YOU OR A THIRD PARTY, TO CONDUCT THAT VIOLATES THIS LICENSE, TO PATENT, TRADEMARK, TRADE SECRET, MORAL, OR OTHER NON-COPYRIGHT RIGHTS, OR TO ANY RIGHT THAT CANNOT BE WAIVED, LIMITED, OR EXCLUDED UNDER APPLICABLE LAW. IF THIS COVENANT IS HELD INVALID OR UNENFORCEABLE IN A JURISDICTION, IT SHALL BE INTERPRETED AND ENFORCED TO THE MAXIMUM EXTENT PERMITTED IN THAT JURISDICTION, AND THE REMAINING PROVISIONS SHALL REMAIN IN EFFECT.
-
-    IF YOU VIOLATE ANY TERM OF THIS LICENSE, YOUR LICENSE TERMINATES AUTOMATICALLY. IF YOU CURE THE VIOLATION WITHIN 30 DAYS AFTER RECEIVING WRITTEN NOTICE FROM THE COPYRIGHT HOLDER, THE LICENSE IS REINSTATED AS OF THE DATE OF CURE. THE COPYRIGHT HOLDER MAY ALSO REINSTATE THE LICENSE BY WRITTEN NOTICE. AFTER TERMINATION, YOU MUST STOP USING, COPYING, MODIFYING, AND DISTRIBUTING THE PROJECT AND ANY MODIFIED VERSION, EXCEPT FOR RIGHTS THAT CANNOT BE RESTRICTED UNDER APPLICABLE LAW, SUCH AS FAIR USE.
-
-    THE PROJECT IS PROVIDED "AS IS." THE COPYRIGHT HOLDER AND CONTRIBUTORS MAKE NO EXPRESS OR IMPLIED WARRANTIES, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY, OR UNINTERRUPTED OR ERROR-FREE OPERATION. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE COPYRIGHT HOLDER AND CONTRIBUTORS SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, PUNITIVE, OR CONSEQUENTIAL DAMAGES ARISING FROM OR RELATED TO THE USE OF OR INABILITY TO USE THE PROJECT OR ANY MODIFIED VERSION, INCLUDING WITHOUT LIMITATION LOSS OF DATA, BUSINESS INTERRUPTION, LOSS OF PROFITS, OR THIRD-PARTY CLAIMS.
-
-    THIS LICENSE DOES NOT REPRESENT THAT IT IS APPROVED BY THE OPEN SOURCE INITIATIVE OR ANY OTHER ORGANIZATION. WHETHER IT QUALIFIES AS AN "OPEN SOURCE LICENSE" DEPENDS ON THE APPLICABLE DEFINITION AND ORGANIZATIONAL RULES. YOU MAY COPY AND DISTRIBUTE THIS LICENSE TEXT VERBATIM, BUT YOU MAY NOT MODIFY THE LICENSE TEXT AND THEN PUBLISH IT UNDER THE NAME "RECAY OPEN SOURCE PROJECT LICENSE." THIS LICENSE DOES NOT AUTOMATICALLY APPLY TO ANY LATER VERSION. IF ANY PROVISION OF THIS LICENSE IS HELD INVALID OR UNENFORCEABLE, IT SHALL BE INTERPRETED TO THE MAXIMUM EXTENT PERMITTED, AND THE REMAINING PROVISIONS SHALL REMAIN IN EFFECT. THIS LICENSE CONSTITUTES THE COMPLETE LICENSE AGREEMENT CONCERNING THE PROJECT AND SUPERSEDES ANY PRIOR ORAL OR WRITTEN LICENSE STATEMENTS ON THE SAME SUBJECT.
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 */
 
 module build;
+
+import packer;
 
 import std.stdio;
 import std.string;
 import std.array;
 import std.conv;
 import std.range;
+import core.exception;
 
 // Generate
 ubyte[] gen(string code) {
     // Storages
-    ubyte[] result = [];
+    string[string] result;
+    ubyte[] prog;
+    ubyte[] data;
+
+    // Temps
     string[string] consts = new string[string];
+    uint[][uint] delVars;
 
     // Build Exceptions
     void epath(string path) {
@@ -45,7 +47,9 @@ ubyte[] gen(string code) {
         auto com = argv[0].strip;
         if (!com.startsWith("note") && !(argv.length == 0)) {
             try {
-                consts["bytes of the program"] = "unsigned " ~ result.length.to!string;
+                consts["bytes of the bytecode"] = "unsigned " ~ prog.length.to!string;
+                consts["bytes of the constant data"] = "unsigned " ~ prog.length.to!string;
+                consts["bytes of the format"] = "unsigned " ~ prog.length.to!string;
 
                 auto path = com.split(" in ").retro.array;
                 
@@ -90,21 +94,178 @@ ubyte[] gen(string code) {
                                     }
                                     escaping = false;
                                 } else if (s[ptr] == '`') escaping = true;
-                                else result ~= s[ptr];
+                                else prog ~= s[ptr];
                             consts[argv[1].strip] = converted;
                         } else consts[argv[1].strip] = consts.get(v, v);
                         break;
-                    case "program":
+                    case "application":
                         switch (path[1].strip) {
-                            // Except Instruction
-                            case "except":
-                                auto s = consts.get(argv[1].strip, argv[1].strip);
-                                if (s.startsWith("byte")) result ~= s[4..$].to!byte;
-                                else if (s.startsWith("unsigned byte")) result ~= s[13..$].strip.to!byte;
-                                else foreach (c; s) result ~= c;
+                            case "constant data":
+                                switch (path[2].strip) {
+                                    case "inject":
+                                        auto s = consts.get(argv[1].strip, argv[1].strip);
+                                        if (s.startsWith("byte")) data ~= s[4..$].strip.to!byte;
+                                        else if (s.startsWith("unsigned byte")) data ~= s[13..$].strip.to!ubyte;
+                                        else if (s.startsWith("short")) {
+                                            auto temp = s[5..$].strip.to!short;
+                                            data ~= cast(ubyte)temp;
+                                            data ~= cast(ubyte)(temp >> 8);
+                                        } else if (s.startsWith("unsigned short")) {
+                                            auto temp = s[14..$].strip.to!ushort;
+                                            data ~= cast(ubyte)temp;
+                                            data ~= cast(ubyte)(temp >> 8);
+                                        } else if (s.startsWith("number")) {
+                                            auto temp = s[6..$].strip.to!int;
+                                            data ~= cast(ubyte)temp;
+                                            data ~= cast(ubyte)(temp >> 8);
+                                            data ~= cast(ubyte)(temp >> 16);
+                                            data ~= cast(ubyte)(temp >> 24);
+                                        } else if (s.startsWith("unsigned")) {
+                                            auto temp = s[9..$].strip.to!uint;
+                                            data ~= cast(ubyte)temp;
+                                            data ~= cast(ubyte)(temp >> 8);
+                                            data ~= cast(ubyte)(temp >> 16);
+                                            data ~= cast(ubyte)(temp >> 24);
+                                        } else foreach (c; s) data ~= c;
+                                        break;
+                                    default: epath(path[2]);
+                                }
+                                break;
+                            case "bytecode":
+                                switch (path[2].strip) {
+                                    case "inject":
+                                        auto s = consts.get(argv[1].strip, argv[1].strip);
+                                        if (s.startsWith("byte")) prog ~= s[4..$].strip.to!byte;
+                                        else if (s.startsWith("unsigned byte")) prog ~= s[13..$].strip.to!ubyte;
+                                        else if (s.startsWith("short")) {
+                                            auto temp = s[5..$].strip.to!short;
+                                            prog ~= cast(ubyte)temp;
+                                            prog ~= cast(ubyte)(temp >> 8);
+                                        } else if (s.startsWith("unsigned short")) {
+                                            auto temp = s[14..$].strip.to!ushort;
+                                            prog ~= cast(ubyte)temp;
+                                            prog ~= cast(ubyte)(temp >> 8);
+                                        } else if (s.startsWith("number")) {
+                                            auto temp = s[6..$].strip.to!int;
+                                            prog ~= cast(ubyte)temp;
+                                            prog ~= cast(ubyte)(temp >> 8);
+                                            prog ~= cast(ubyte)(temp >> 16);
+                                            prog ~= cast(ubyte)(temp >> 24);
+                                        } else if (s.startsWith("unsigned")) {
+                                            auto temp = s[9..$].strip.to!uint;
+                                            prog ~= cast(ubyte)temp;
+                                            prog ~= cast(ubyte)(temp >> 8);
+                                            prog ~= cast(ubyte)(temp >> 16);
+                                            prog ~= cast(ubyte)(temp >> 24);
+                                        } else foreach (c; s) prog ~= c;
+                                        break;
+                                    default: epath(path[2]);
+                                }
                                 break;
                             default: epath(path[1]);
                         }
+                        break;
+                    case "create":
+                        auto name = consts.get(argv[1].strip, argv[1].strip);
+                        auto value = consts.get(argv[2].strip, argv[2].strip);
+                        consts["location of " ~ name] = "unsigned " ~ data.length.to!string;
+                        if (value.startsWith("byte")) {
+                            try {
+                                auto addr = delVars[1][$-1];
+                                delVars[1] = delVars[1][0..$-1];
+                                data[addr] = value[4..$].strip.to!byte;
+                                consts["location of " ~ name] = "unsigned " ~ addr.to!string;
+                            } catch (RangeError) data ~= value[4..$].strip.to!byte;
+                            consts["size of " ~ name] = "unsigned 1";
+                        } else if (value.startsWith("unsigned byte")) {
+                            try {
+                                auto addr = delVars[1][$-1];
+                                delVars[1] = delVars[1][0..$-1];
+                                data[addr] = value[13..$].strip.to!ubyte;
+                                consts["location of " ~ name] = "unsigned " ~ addr.to!string;
+                            } catch (RangeError) data ~= value[13..$].strip.to!ubyte;
+                            consts["size of " ~ name] = "unsigned 1";
+                        } else if (value.startsWith("short")) {
+                            auto number = value[5..$].strip.to!short;
+                            try {
+                                auto addr = delVars[2][$-1];
+                                delVars[2] = delVars[2][0..$-1];
+                                data[addr] = cast(ubyte)number;
+                                data[addr+1] = cast(ubyte)(number >> 8);
+                                consts["location of " ~ name] = "unsigned " ~ addr.to!string;
+                                consts["size of " ~ name] = "unsigned 2";
+                            } catch (RangeError) {
+                                data ~= cast(ubyte)number;
+                                data ~= cast(ubyte)(number >> 8);
+                                consts["size of " ~ name] = "unsigned 2";
+                            }
+                        } else if (value.startsWith("unsigned short")) {
+                            auto number = value[14..$].strip.to!ushort;
+                            try {
+                                auto addr = delVars[2][$-1];
+                                delVars[2] = delVars[2][0..$-1];
+                                data[addr] = cast(ubyte)number;
+                                data[addr+1] = cast(ubyte)(number >> 8);
+                                consts["location of " ~ name] = "unsigned " ~ addr.to!string;
+                                consts["size of " ~ name] = "unsigned 2";
+                            } catch (RangeError) {
+                                data ~= cast(ubyte)number;
+                                data ~= cast(ubyte)(number >> 8);
+                                consts["size of " ~ name] = "unsigned 2";
+                            }
+                        } else if (value.startsWith("number")) {
+                            auto number = value[6..$].strip.to!int;
+                            try {
+                                auto addr = delVars[4][$-1];
+                                delVars[4] = delVars[4][0..$-1];
+                                data[addr] = cast(ubyte)number;
+                                data[addr+1] = cast(ubyte)(number >> 8);
+                                data[addr+2] = cast(ubyte)(number >> 16);
+                                data[addr+3] = cast(ubyte)(number >> 24);
+                                consts["location of " ~ name] = "unsigned " ~ addr.to!string;
+                                consts["size of " ~ name] = "unsigned 4";
+                            } catch (RangeError) {
+                                data ~= cast(ubyte)number;
+                                data ~= cast(ubyte)(number >> 8);
+                                data ~= cast(ubyte)(number >> 16);
+                                data ~= cast(ubyte)(number >> 24);
+                                consts["size of " ~ name] = "unsigned 4";
+                            }
+                        } else if (value.startsWith("unsigned")) {
+                            auto number = value[8..$].strip.to!int;
+                            try {
+                                auto addr = delVars[4][$-1];
+                                delVars[4] = delVars[4][0..$-1];
+                                data[addr] = cast(ubyte)number;
+                                data[addr+1] = cast(ubyte)(number >> 8);
+                                data[addr+2] = cast(ubyte)(number >> 16);
+                                data[addr+3] = cast(ubyte)(number >> 24);
+                                consts["location of " ~ name] = "unsigned " ~ addr.to!string;
+                                consts["size of " ~ name] = "unsigned 4";
+                            } catch (RangeError) {
+                                data ~= cast(ubyte)number;
+                                data ~= cast(ubyte)(number >> 8);
+                                data ~= cast(ubyte)(number >> 16);
+                                data ~= cast(ubyte)(number >> 24);
+                                consts["size of " ~ name] = "unsigned 4";
+                            }
+                        } else throw new Exception("Unsupported Type");
+                        break;
+                    case "remove":
+                        auto name = consts.get(argv[1].strip, argv[1].strip);
+                        // Get Address & Length String
+                        auto saddr = consts["location of " ~ name];
+                        auto slen = consts["size of " ~ name];
+                        // Check Are They Unsigned
+                        if (saddr.startsWith("unsigned") && slen.startsWith("unsigned")) {
+                            // Remove Address & Length Constants
+                            consts.remove("location of " ~ name);
+                            consts.remove("size of " ~ name);
+                            // Throw to deleted variables
+                            auto addr = saddr[8..$].strip.to!uint;
+                            auto len = slen[8..$].strip.to!uint;
+                            delVars[len] = delVars.get(len, []) ~ addr;
+                        } else throw new Exception("Unsupported Type");
                         break;
                     default: epath(path[0]);
                 }
@@ -114,6 +275,11 @@ ubyte[] gen(string code) {
             }
         }
     }
+    
+    // Package
+    result["Program Format"] = "The CiExml Programming Language Standard Executable";
+    result["Constant Data"] = cast(string)data;
+    result["Program Bytecode"] = cast(string)prog;
 
-    return result;
+    return pack(result);
 }

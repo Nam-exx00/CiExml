@@ -1,3 +1,9 @@
 {
-	"name": "cie"
+    "name": "cie",
+    "authors": ["Nam_exx00"],
+    "license": "Apache-2.0",
+    "dependencies": {
+        "packer": { "path": "Packer" }
+    },
+    "dflags-ldc": ["-boundscheck=on"]
 }

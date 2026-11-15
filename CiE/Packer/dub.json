@@ -1,0 +1,5 @@
+{
+    "name": "packer",
+    "license": "Apache-2.0",
+    "targetType": "library"
+}
