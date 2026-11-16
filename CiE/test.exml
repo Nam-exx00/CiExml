@@ -1,9 +1,13 @@
-note the application will return 8. I am testing the memory manager of builder.
-create with a with number 1
-create with b with number 2
-create with c with number 3
-remove with a
-remove with c
-create with d with number 4
-inject in bytecode in application with byte 4
-inject in bytecode in application with location of d
+note this is a small-test for the new CiExml-programming-language syntaxes.
+
+note they are creating 3 constants
+create a new constant with li32 with byte 4
+create a new constant with return value with number 42
+create a new constant with author with 'Nam_exx00'
+
+note test data section now
+inject a new constant data in application with author
+
+note now execute it
+inject a new bytecode in application with li32
+inject a new bytecode in application with return value

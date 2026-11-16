@@ -43,9 +43,10 @@ ubyte[] gen(string code) {
 
     auto lines = code.split('\n');
     for (auto p = 0; p < lines.length; p++) {
-        auto argv = lines[p].strip.split(" with ");
-        auto com = argv[0].strip;
-        if (!com.startsWith("note") && !(argv.length == 0)) {
+        auto line = lines[p].strip;
+        auto argv = line.split(" with ");
+        auto com = argv.length ? argv[0].strip : null;
+        if (!line.startsWith("note") && line.length) {
             try {
                 consts["bytes of the bytecode"] = "unsigned " ~ prog.length.to!string;
                 consts["bytes of the constant data"] = "unsigned " ~ prog.length.to!string;
@@ -54,7 +55,7 @@ ubyte[] gen(string code) {
                 auto path = com.split(" in ").retro.array;
                 
                 switch (path[0].strip) {
-                    case "define":
+                    case "create a new constant":
                         auto v = argv[2].strip;
                         if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith('\'') && v.endsWith('\''))) {
                             bool escaping = false;
@@ -94,78 +95,68 @@ ubyte[] gen(string code) {
                                     }
                                     escaping = false;
                                 } else if (s[ptr] == '`') escaping = true;
-                                else prog ~= s[ptr];
+                                else converted ~= s[ptr];
                             consts[argv[1].strip] = converted;
                         } else consts[argv[1].strip] = consts.get(v, v);
                         break;
                     case "application":
                         switch (path[1].strip) {
-                            case "constant data":
-                                switch (path[2].strip) {
-                                    case "inject":
-                                        auto s = consts.get(argv[1].strip, argv[1].strip);
-                                        if (s.startsWith("byte")) data ~= s[4..$].strip.to!byte;
-                                        else if (s.startsWith("unsigned byte")) data ~= s[13..$].strip.to!ubyte;
-                                        else if (s.startsWith("short")) {
-                                            auto temp = s[5..$].strip.to!short;
-                                            data ~= cast(ubyte)temp;
-                                            data ~= cast(ubyte)(temp >> 8);
-                                        } else if (s.startsWith("unsigned short")) {
-                                            auto temp = s[14..$].strip.to!ushort;
-                                            data ~= cast(ubyte)temp;
-                                            data ~= cast(ubyte)(temp >> 8);
-                                        } else if (s.startsWith("number")) {
-                                            auto temp = s[6..$].strip.to!int;
-                                            data ~= cast(ubyte)temp;
-                                            data ~= cast(ubyte)(temp >> 8);
-                                            data ~= cast(ubyte)(temp >> 16);
-                                            data ~= cast(ubyte)(temp >> 24);
-                                        } else if (s.startsWith("unsigned")) {
-                                            auto temp = s[9..$].strip.to!uint;
-                                            data ~= cast(ubyte)temp;
-                                            data ~= cast(ubyte)(temp >> 8);
-                                            data ~= cast(ubyte)(temp >> 16);
-                                            data ~= cast(ubyte)(temp >> 24);
-                                        } else foreach (c; s) data ~= c;
-                                        break;
-                                    default: epath(path[2]);
-                                }
+                            case "inject a new constant data":
+                                auto s = consts.get(argv[1].strip, argv[1].strip);
+                                if (s.startsWith("byte")) data ~= s[4..$].strip.to!byte;
+                                else if (s.startsWith("unsigned byte")) data ~= s[13..$].strip.to!ubyte;
+                                else if (s.startsWith("short")) {
+                                    auto temp = s[5..$].strip.to!short;
+                                    data ~= cast(ubyte)temp;
+                                    data ~= cast(ubyte)(temp >> 8);
+                                } else if (s.startsWith("unsigned short")) {
+                                    auto temp = s[14..$].strip.to!ushort;
+                                    data ~= cast(ubyte)temp;
+                                    data ~= cast(ubyte)(temp >> 8);
+                                } else if (s.startsWith("number")) {
+                                    auto temp = s[6..$].strip.to!int;
+                                    data ~= cast(ubyte)temp;
+                                    data ~= cast(ubyte)(temp >> 8);
+                                    data ~= cast(ubyte)(temp >> 16);
+                                    data ~= cast(ubyte)(temp >> 24);
+                                } else if (s.startsWith("unsigned")) {
+                                    auto temp = s[9..$].strip.to!uint;
+                                    data ~= cast(ubyte)temp;
+                                    data ~= cast(ubyte)(temp >> 8);
+                                    data ~= cast(ubyte)(temp >> 16);
+                                    data ~= cast(ubyte)(temp >> 24);
+                                } else foreach (c; s) data ~= c;
                                 break;
-                            case "bytecode":
-                                switch (path[2].strip) {
-                                    case "inject":
-                                        auto s = consts.get(argv[1].strip, argv[1].strip);
-                                        if (s.startsWith("byte")) prog ~= s[4..$].strip.to!byte;
-                                        else if (s.startsWith("unsigned byte")) prog ~= s[13..$].strip.to!ubyte;
-                                        else if (s.startsWith("short")) {
-                                            auto temp = s[5..$].strip.to!short;
-                                            prog ~= cast(ubyte)temp;
-                                            prog ~= cast(ubyte)(temp >> 8);
-                                        } else if (s.startsWith("unsigned short")) {
-                                            auto temp = s[14..$].strip.to!ushort;
-                                            prog ~= cast(ubyte)temp;
-                                            prog ~= cast(ubyte)(temp >> 8);
-                                        } else if (s.startsWith("number")) {
-                                            auto temp = s[6..$].strip.to!int;
-                                            prog ~= cast(ubyte)temp;
-                                            prog ~= cast(ubyte)(temp >> 8);
-                                            prog ~= cast(ubyte)(temp >> 16);
-                                            prog ~= cast(ubyte)(temp >> 24);
-                                        } else if (s.startsWith("unsigned")) {
-                                            auto temp = s[9..$].strip.to!uint;
-                                            prog ~= cast(ubyte)temp;
-                                            prog ~= cast(ubyte)(temp >> 8);
-                                            prog ~= cast(ubyte)(temp >> 16);
-                                            prog ~= cast(ubyte)(temp >> 24);
-                                        } else foreach (c; s) prog ~= c;
-                                        break;
-                                    default: epath(path[2]);
-                                }
+                            case "inject a new bytecode":
+                                auto s = consts.get(argv[1].strip, argv[1].strip);
+                                if (s.startsWith("byte")) prog ~= s[4..$].strip.to!byte;
+                                else if (s.startsWith("unsigned byte")) prog ~= s[13..$].strip.to!ubyte;
+                                else if (s.startsWith("short")) {
+                                    auto temp = s[5..$].strip.to!short;
+                                    prog ~= cast(ubyte)temp;
+                                    prog ~= cast(ubyte)(temp >> 8);
+                                } else if (s.startsWith("unsigned short")) {
+                                    auto temp = s[14..$].strip.to!ushort;
+                                    prog ~= cast(ubyte)temp;
+                                    prog ~= cast(ubyte)(temp >> 8);
+                                } else if (s.startsWith("number")) {
+                                    auto temp = s[6..$].strip.to!int;
+                                    prog ~= cast(ubyte)temp;
+                                    prog ~= cast(ubyte)(temp >> 8);
+                                    prog ~= cast(ubyte)(temp >> 16);
+                                    prog ~= cast(ubyte)(temp >> 24);
+                                } else if (s.startsWith("unsigned")) {
+                                    auto temp = s[9..$].strip.to!uint;
+                                    prog ~= cast(ubyte)temp;
+                                    prog ~= cast(ubyte)(temp >> 8);
+                                    prog ~= cast(ubyte)(temp >> 16);
+                                    prog ~= cast(ubyte)(temp >> 24);
+                                } else foreach (c; s) prog ~= c;
                                 break;
                             default: epath(path[1]);
                         }
                         break;
-                    case "create":
+                    case "create a new variable":
                         auto name = consts.get(argv[1].strip, argv[1].strip);
                         auto value = consts.get(argv[2].strip, argv[2].strip);
                         consts["location of " ~ name] = "unsigned " ~ data.length.to!string;
@@ -251,7 +242,7 @@ ubyte[] gen(string code) {
                             }
                         } else throw new Exception("Unsupported Type");
                         break;
-                    case "remove":
+                    case "remove a variable":
                         auto name = consts.get(argv[1].strip, argv[1].strip);
                         // Get Address & Length String
                         auto saddr = consts["location of " ~ name];
