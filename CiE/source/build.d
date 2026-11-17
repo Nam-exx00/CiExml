@@ -87,14 +87,14 @@ ubyte[] gen(string code) {
                                             converted ~= '\v';
                                             break;
                                         // Special
-                                        case 'h':
+                                        case 'x':
                                             converted ~= s[ptr+1..ptr+3].to!ubyte(16);
                                             ptr += 2;
                                             break;
                                         default: converted ~= s[ptr];
                                     }
                                     escaping = false;
-                                } else if (s[ptr] == '`') escaping = true;
+                                } else if (s[ptr] == '\\') escaping = true;
                                 else converted ~= s[ptr];
                             consts[argv[1].strip] = converted;
                         } else consts[argv[1].strip] = consts.get(v, v);
